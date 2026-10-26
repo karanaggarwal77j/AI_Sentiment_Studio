@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyze Review | Sentiment Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <a class="brand" href="/single">
+            <span class="brand-mark">S</span>
+            <span>
+                <strong>sentiment<span>studio</span></strong>
+                <small>AI REVIEW INTELLIGENCE</small>
+            </span>
+        </a>
+
+        <div class="side-label">WORKSPACE</div>
+        <a class="nav-item active" href="/single"><span>😊</span> Single Review</a>
+        <a class="nav-item" href="/bulk"><span>📊</span> Multiple Review Analytics</a>
+
+        <div class="sidebar-bottom">
+            <i></i>
+            <div><strong>AI engine ready</strong><small>Transformer sentiment model</small></div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div><span>Workspace</span><b>/</b><strong>Single review analysis</strong></div>
+            <div class="top-chip"><i></i> Local demo</div>
+        </header>
+
+        <section class="welcome">
+            <div>
+                <p class="eyebrow">QUICK SENTIMENT CHECK</p>
+                <h1>One review. <em>Clear insight.</em></h1>
+                <p class="intro">Understand the tone of a product review or social media comment in seconds.</p>
+            </div>
+            <div class="welcome-art">
+                <div class="orbit o1"></div><div class="orbit o2"></div>
+                <div class="core">✦</div>
+                <span class="emoji e1">😊</span><span class="emoji e2">💬</span><span class="emoji e3">♡</span>
+            </div>
+        </section>
+
+        {% if error %}
+        <div class="alert" role="alert">⚠️ &nbsp; {{ error }}</div>
+        {% endif %}
+
+        <section class="panel" id="single">
+            <div class="section-heading">
+                <div>
+                    <span class="step-tag">01 / SINGLE REVIEW</span>
+                    <h2>How does this review feel?</h2>
+                    <p>Enter one review and let the AI classify its sentiment.</p>
+                </div>
+                <span class="section-icon">💭</span>
+            </div>
+
+            <form method="POST" action="/single">
+                <label for="review">YOUR REVIEW</label>
+                <textarea id="review" name="review" rows="5" maxlength="2000"
+                    placeholder="Example: The product quality is excellent and delivery was quick..."
+                    required>{{ review_text or '' }}</textarea>
+                <div class="form-footer">
+                    <span class="hint">😊 Positive · 😌 Neutral · 😟 Negative</span>
+                    <button type="submit">Analyze sentiment <b>↗</b></button>
+                </div>
+            </form>
+
+            {% if single_result %}
+                {% set sc = single_result.sentiment|lower %}
+                {% if sc == 'positive' %}
+                    {% set face = '🥰' %}{% set title = 'Feeling the love!' %}{% set copy = 'This review reads as positive.' %}
+                {% elif sc == 'negative' %}
+                    {% set face = '😟' %}{% set title = 'Room to improve' %}{% set copy = 'This review reads as negative.' %}
+                {% else %}
+                    {% set face = '😌' %}{% set title = 'Keeping it neutral' %}{% set copy = 'This review reads as neutral.' %}
+                {% endif %}
+
+                <div class="single-result {{ sc }}">
+                    <div class="mood-face">{{ face }}</div>
+                    <div class="mood-copy">
+                        <span class="result-kicker">AI SENTIMENT RESULT</span>
+                        <h3>{{ title }}</h3>
+                        <p>{{ copy }}</p>
+                    </div>
+                    <div class="score-block">
+                        <span>Model score</span>
+                        <strong>{{ (single_result.score * 100)|round(1) }}<small>%</small></strong>
+                        <div class="score-track"><i style="width: {{ (single_result.score * 100)|round(1) }}%"></i></div>
+                    </div>
+                </div>
+                <p class="score-note">The model score indicates prediction confidence and is not a guarantee of correctness.</p>
+            {% endif %}
+        </section>
+
+        <footer>✦ Sentiment Studio <span>·</span> AI-assisted insights for learning and demonstration</footer>
+    </main>
+</div>
+</body>
+</html>

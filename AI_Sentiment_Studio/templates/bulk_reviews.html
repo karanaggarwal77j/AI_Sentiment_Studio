@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Analytics | Sentiment Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <a class="brand" href="/single">
+            <span class="brand-mark">S</span>
+            <span>
+                <strong>sentiment<span>studio</span></strong>
+                <small>AI REVIEW INTELLIGENCE</small>
+            </span>
+        </a>
+
+        <div class="side-label">WORKSPACE</div>
+        <a class="nav-item" href="/single"><span>😊</span> Single Review</a>
+        <a class="nav-item active" href="/bulk"><span>📊</span> Multiple Review Analytics</a>
+
+        <div class="sidebar-bottom">
+            <i></i>
+            <div><strong>AI engine ready</strong><small>Transformer sentiment model</small></div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div><span>Workspace</span><b>/</b><strong>Multiple review analytics</strong></div>
+            <div class="top-chip"><i></i> Local demo</div>
+        </header>
+
+        <section class="welcome">
+            <div>
+                <p class="eyebrow">CUSTOMER FEEDBACK, AT A GLANCE</p>
+                <h1>See the <em>bigger picture.</em></h1>
+                <p class="intro">Analyze a batch of reviews and discover the overall positive, neutral, and negative sentiment.</p>
+            </div>
+            <div class="welcome-art">
+                <div class="orbit o1"></div><div class="orbit o2"></div>
+                <div class="core">✦</div>
+                <span class="emoji e1">📊</span><span class="emoji e2">😊</span><span class="emoji e3">♡</span>
+            </div>
+        </section>
+
+        {% if error %}
+        <div class="alert" role="alert">⚠️ &nbsp; {{ error }}</div>
+        {% endif %}
+
+        <section class="panel" id="bulk">
+            <div class="section-heading">
+                <div>
+                    <span class="step-tag">01 / BATCH ANALYSIS</span>
+                    <h2>Analyze multiple reviews</h2>
+                    <p>Paste one review per line to generate a sentiment report.</p>
+                </div>
+                <span class="section-icon">📊</span>
+            </div>
+
+            <form method="POST" action="/bulk">
+                <label for="reviews">YOUR REVIEWS <span class="label-light">— ONE PER LINE</span></label>
+                <textarea id="reviews" name="reviews" rows="6" maxlength="30000"
+                    placeholder="The service was wonderful!&#10;The delivery was late and the box was damaged.&#10;It works as expected, nothing more."
+                    required>{{ reviews_text or '' }}</textarea>
+                <div class="form-footer">
+                    <span class="hint">Enter up to 100 reviews, one per line.</span>
+                    <button type="submit">Generate insights <b>↗</b></button>
+                </div>
+            </form>
+        </section>
+
+        {% if total is defined and total > 0 %}
+        <section class="panel">
+            <div class="analytics-topline">
+                <div>
+                    <span class="result-kicker">ANALYSIS SUMMARY</span>
+                    <h3>Sentiment distribution</h3>
+                </div>
+                <span class="review-count"><strong>{{ total }}</strong> reviews analyzed</span>
+            </div>
+
+            <div class="analytics-grid">
+                <div class="chart-card">
+                    <div class="donut-wrap">
+                        <canvas id="sentimentDonut" role="img" aria-label="Circular sentiment distribution chart"></canvas>
+                        <div class="donut-center">
+                            <strong>{{ total }}</strong><span>REVIEWS</span>
+                        </div>
+                    </div>
+                    <p class="chart-caption">Overall sentiment mix</p>
+                </div>
+
+                <div class="sentiment-breakdown">
+                    {% for label, cls, count, pct, desc in [
+                        ('Positive', 'pos', counts.Positive, percentages.Positive, 'Happy customers'),
+                        ('Neutral', 'neu', counts.Neutral, percentages.Neutral, 'Mixed or factual tone'),
+                        ('Negative', 'neg', counts.Negative, percentages.Negative, 'Needs attention')
+                    ] %}
+                    <div class="breakdown-row">
+                        <span class="legend-dot {{ cls }}"></span>
+                        <div class="breakdown-label"><strong>{{ label }}</strong><small>{{ desc }}</small></div>
+                        <div class="breakdown-value"><strong>{{ count }}</strong><small>{{ pct }}%</small></div>
+                    </div>
+                    <div class="mini-track"><i class="{{ cls }}-fill" style="width: {{ pct }}%"></i></div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="table-heading">
+                <h3>Review-by-review results</h3><span>{{ total }} entries</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>REVIEW TEXT</th><th>SENTIMENT</th><th>MODEL SCORE</th></tr></thead>
+                    <tbody>
+                    {% for item in bulk_results %}
+                    <tr>
+                        <td>{{ item.text }}</td>
+                        <td><span class="pill {{ item.sentiment|lower }}">
+                            {% if item.sentiment|lower == 'positive' %}😊
+                            {% elif item.sentiment|lower == 'negative' %}😟
+                            {% else %}😌{% endif %}
+                            {{ item.sentiment }}
+                        </span></td>
+                        <td>{{ (item.score * 100)|round(1) }}%</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <script>
+        (() => {
+            const canvas = document.getElementById('sentimentDonut');
+            if (!canvas || typeof Chart === 'undefined') return;
+
+            new Chart(canvas, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Positive', 'Neutral', 'Negative'],
+                    datasets: [{
+                        data: [{{ counts.Positive }}, {{ counts.Neutral }}, {{ counts.Negative }}],
+                        backgroundColor: ['#45b88a', '#f2b85b', '#e87979'],
+                        borderColor: '#ffffff',
+                        borderWidth: 5,
+                        hoverOffset: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    cutout: '76%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const values = context.dataset.data;
+                                    const sum = values.reduce((a, b) => a + b, 0);
+                                    const pct = sum ? (context.raw / sum * 100).toFixed(1) : '0.0';
+                                    return `${context.label}: ${context.raw} (${pct}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        })();
+        </script>
+        {% else %}
+        <section class="panel">
+            <div class="analytics-empty">
+                <div>◔</div>
+                <strong>Your insights will appear here</strong>
+                <p>Paste multiple reviews above and select Generate insights to see the circular chart and review-by-review results.</p>
+            </div>
+        </section>
+        {% endif %}
+
+        <footer>✦ Sentiment Studio <span>·</span> AI-assisted insights for learning and demonstration</footer>
+    </main>
+</div>
+</body>
+</html>
